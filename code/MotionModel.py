@@ -37,10 +37,10 @@ class MotionModel:
         TODO : Add your code here
         """
         # calibration prams
-        alpha_1 = 0.01
-        alpha_2 = 0.01
-        alpha_3 = 0.01
-        alpha_4 = 0.02
+        alpha_1 = 5
+        alpha_2 = 5
+        alpha_3 = 5
+        alpha_4 = 5
 
         # recover the relative motion params - line 2:4
         # ipdb.set_trace()
@@ -48,7 +48,7 @@ class MotionModel:
         delta_trans = np.sqrt((u_t1[1] - u_t0[1])**2 + (u_t1[0] - u_t0[0])**2)
         delta_rot2 = u_t1[2] - u_t0[2] - delta_rot1
 
-        print delta_trans
+        # print(delta_trans, delta_rot2)
 
         # add the noise into it!
         t1 = alpha_1 * delta_rot1 + alpha_2 * delta_trans

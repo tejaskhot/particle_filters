@@ -88,6 +88,7 @@ def main():
     # X_bar = init_particles_random(num_particles, occupancy_map)
     X_bar = init_particles_freespace(num_particles, occupancy_map)
     vis_flag = 1
+    vis_type = 'mean' # {mean, max}
 
     """
     Monte Carlo Localization Algorithm : Main Loop
@@ -121,6 +122,7 @@ def main():
 
         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
         u_t1 = odometry_robot
+
         for m in range(0, num_particles):
 
             """
@@ -140,11 +142,18 @@ def main():
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, X_bar[m,3]))
 
-        # ipdb.set_trace()
-        best_particle_idx = np.argmax(X_bar_new, axis=0)[-1]
+        if vis_type == 'max':
+            best_particle_idx = np.argmax(X_bar_new, axis=0)[-1]
+            vis_particle = X_bar_new[best_particle_idx][:-1]
+        elif vis_type == 'mean':
+            # ipdb.set_trace()
+            X_weighted = X_bar_new[:,:3] * X_bar_new[:,3:4]
+            X_mean = np.sum(X_weighted, axis=0)
+            vis_particle = X_mean/sum(X_bar_new[:,3:4])
+
         sensor_model.visualization = True
         sensor_model.plot_measurement = True
-        sensor_model.beam_range_finder_model(ranges, X_bar_new[best_particle_idx][:-1])
+        sensor_model.beam_range_finder_model(ranges, vis_particle)
         sensor_model.visualization = False
         sensor_model.plot_measurement = False
 

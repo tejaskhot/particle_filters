@@ -117,8 +117,9 @@ class SensorModel:
             x = np.linspace(0, self.z_max, 200)
             y = self.w_hit * self.p_hit(z_true, x) + self.w_rand * self.p_rand(x) + self.w_short * self.p_short(z_true, x) + self.w_max * self.p_max(x)
             plt.plot(x, y, 'k-')
-            plt.show()
+            # plt.show()
             plt.pause(200)
+            # plt.pause(0.00001)
 
         if self.visualization:
             plt.plot([x_t1[0]], [x_t1[1]], 'go')
@@ -127,6 +128,7 @@ class SensorModel:
             plt.draw()
             plt.show()
             plt.pause(1)
+            # plt.pause(0.00001)
             plt.close()
 
         return q
