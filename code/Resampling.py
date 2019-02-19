@@ -2,7 +2,7 @@ import numpy as np
 import pdb
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-
+import ipdb
 class Resampling:
 
     """
@@ -14,6 +14,7 @@ class Resampling:
         """
         TODO : Initialize resampling process parameters here
         """
+        self.dice_count = 1
 
     def multinomial_sampler(self, X_bar):
 
@@ -24,10 +25,13 @@ class Resampling:
 
         weights = X_bar[:, 3]
         total_num = len(weights)
-
         weights = weights / np.sum(weights)
         resampled_index = np.random.multinomial(self.dice_count*total_num, weights, size=1)[0, :]
-        X_bar_resampled = X_bar[resampled_index, :]
+        print('resampled_index : ', resampled_index.shape)
+        try:
+            X_bar_resampled = X_bar[resampled_index, :]
+        except:
+            ipdb.set_trace()
 
         return X_bar_resampled
 
@@ -46,10 +50,10 @@ class Resampling:
         c = weights[0]
         i = 0
         total_weights = np.sum(weights)
-        print('='*75)
-        print('Total particle weights {}'.format(total_weights))
+        # print('='*75)
+        # print('Total particle weights {}'.format(total_weights))
         std = np.std(weights)
-        print('Weights standard deviation {}'.format(std))
+        # print('Weights standard deviation {}'.format(std))
 
         # for m in range(0, num_particles):
 
@@ -62,8 +66,18 @@ class Resampling:
 
             X_bar_resampled[m,:] =  X_bar[i,:]
 
+        # give unifrom weight again
+        # X_bar_resampled[:,3] = 1.0/num_particles
 
         return X_bar_resampled
+
+    # def add_particles(X_bar_resampled):
+
+    #     mean_weight = np.mean(X_bar_resampled[:,3])
+
+    #     if(mean_weight < 0.1):
+    #         ## basically all particles are bad
+
 
 if __name__ == "__main__":
     pass

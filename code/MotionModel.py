@@ -37,10 +37,10 @@ class MotionModel:
         TODO : Add your code here
         """
         # calibration prams
-        alpha_1 = 5
-        alpha_2 = 5
-        alpha_3 = 5
-        alpha_4 = 5
+        alpha_1 = 0.01 # 5
+        alpha_2 = 0.01 # 7
+        alpha_3 = 0.05 # 7
+        alpha_4 = 0.05 # 5
 
         # recover the relative motion params - line 2:4
         # ipdb.set_trace()
@@ -51,9 +51,9 @@ class MotionModel:
         # print(delta_trans, delta_rot2)
 
         # add the noise into it!
-        t1 = alpha_1 * delta_rot1 + alpha_2 * delta_trans
-        t2 = alpha_3 * delta_trans + alpha_4 * (delta_rot1 + delta_rot2)
-        t3 = alpha_1 * delta_rot2 + alpha_2 * delta_trans
+        t1 = alpha_1 * delta_rot1**2 + alpha_2 * delta_trans**2
+        t2 = alpha_3 * delta_trans**2 + alpha_4 * (delta_rot1**2 + delta_rot2**2)
+        t3 = alpha_1 * delta_rot2**2 + alpha_2 * delta_trans**2
 
         delta_rot1_cap = delta_rot1  - sample_normal_distribution(t1)
         delta_trans_cap = delta_trans  - sample_normal_distribution(t2)
@@ -64,6 +64,11 @@ class MotionModel:
         x_t1[0] = x_t0[0] + delta_trans_cap * np.cos(x_t0[2] + delta_rot1_cap)
         x_t1[1] = x_t0[1] + delta_trans_cap * np.sin(x_t0[2] + delta_rot1_cap)
         x_t1[2] = x_t0[2] + delta_rot1_cap + delta_rot2_cap
+
+        # print('delta_trans_cap * np.cos(x_t0[2] + delta_rot1_cap) : ', delta_trans_cap * np.cos(x_t0[2] + delta_rot1_cap))
+        # print('delta_trans_cap * np.sin(x_t0[2] + delta_rot1_cap): ', delta_trans_cap * np.sin(x_t0[2] + delta_rot1_cap))
+        # print('delta_rot1_cap + delta_rot2_cap : ', delta_rot1_cap + delta_rot2_cap)
+        # print('='*75)
 
         return x_t1
 

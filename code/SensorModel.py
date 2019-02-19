@@ -40,12 +40,19 @@ class SensorModel:
         self.w_short = 10
         self.w_max = 0.5
         self.w_rand = 9.5
-        self.w_hit = 80
+        self.w_hit = 40
+
+        self.weight_sum = self.w_short + self.w_max + self.w_rand + self.w_hit
+        self.w_short /= self.weight_sum
+        self.w_max /= self.weight_sum
+        self.w_rand /= self.weight_sum
+        self.w_hit /= self.weight_sum
+
         self.sigma_hit = 80.0
         self.lambda_short = 0.02
 
-        self.z_max = 1000
-
+        # self.z_max = 1000
+        self.z_max = 8000
         self.subsample_step_size = 20
 
         self.obstacle_threshold = 0.1
@@ -59,7 +66,6 @@ class SensorModel:
 
         self.pool = Pool(processes=4)
 
-        self.weight_sum = self.w_short + self.w_max + self.w_rand + self.w_hit
 
     def beam_range_finder_model(self, z_t1_arr, x_t1):
         """
@@ -103,8 +109,12 @@ class SensorModel:
         p_short = self.p_short(z_true, z_measured)
         p_max = self.p_max(z_measured)
         p_rand = self.p_rand(z_measured)
+        # ipdb.set_trace()
         q = np.log(self.w_hit * p_hit + self.w_short * p_short + self.w_max * p_max + self.w_rand * p_rand)
-        q = np.exp(q.mean())
+        # q = (self.w_hit * p_hit + self.w_short * p_short + self.w_max * p_max + self.w_rand * p_rand)
+        # q = np.exp(q.mean())
+        # q = np.prod(q)
+        q = np.exp(np.sum(q))
         #  q = np.exp(np.median(q))
 
         if self.debug_msg:

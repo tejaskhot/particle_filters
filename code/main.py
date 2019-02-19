@@ -84,7 +84,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 500
+    num_particles = 250
     # X_bar = init_particles_random(num_particles, occupancy_map)
     X_bar = init_particles_freespace(num_particles, occupancy_map)
     vis_flag = 1
@@ -98,6 +98,7 @@ def main():
 
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
+        # if time_idx % 9 != 0: continue
 
         # Read a single 'line' from the log file (can be either odometry or laser measurement)
         meas_type = line[0] # L : laser scan measurement, O : odometry measurement
@@ -106,8 +107,8 @@ def main():
         odometry_robot = meas_vals[0:3] # odometry reading [x, y, theta] in odometry frame
         time_stamp = meas_vals[-1]
 
-        # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging)
-            # continue
+        if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging)
+            continue
 
         if (meas_type == "L"):
              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
@@ -151,9 +152,10 @@ def main():
             X_mean = np.sum(X_weighted, axis=0)
             vis_particle = X_mean/sum(X_bar_new[:,3:4])
 
+        # print(X_bar_new[:,-1].T)
         sensor_model.visualization = True
         sensor_model.plot_measurement = True
-        sensor_model.beam_range_finder_model(ranges, vis_particle)
+        # sensor_model.beam_range_finder_model(ranges, vis_particle)
         sensor_model.visualization = False
         sensor_model.plot_measurement = False
 
@@ -163,7 +165,16 @@ def main():
         """
         RESAMPLING
         """
-        X_bar = resampler.low_variance_sampler(X_bar)
+        if(np.mean(x_t1 - x_t0) > 0.5):
+            X_bar = resampler.low_variance_sampler(X_bar)
+        # X_bar = resampler.multinomial_sampler(X_bar)
+        # check if importance too low
+        # thres = 1e-29
+        # indices = np.where(X_bar[:,3] > thres)[0]
+        # print(X_bar.shape[0] - indices.shape[0])
+        # temp = init_particles_freespace(X_bar.shape[0] - indices.shape[0], occupancy_map)
+        # X_bar = np.concatenate((X_bar[indices], temp), axis = 0)
+        # X_bar[:,-1] = 1.0/num_particles
 
         if vis_flag:
             visualize_timestep(X_bar, time_idx)
