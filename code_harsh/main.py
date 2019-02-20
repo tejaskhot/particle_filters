@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-import ipdb
+import pdb
 
 from MapReader import MapReader
 from MotionModel import MotionModel
@@ -15,8 +15,7 @@ def visualize_map(occupancy_map):
     fig = plt.figure()
     # plt.switch_backend('TkAgg')
     mng = plt.get_current_fig_manager();  # mng.resize(*mng.window.maxsize())
-    plt.ion(); plt.imshow(occupancy_map, cmap='plasma');
-    plt.axis([0, 800, 0, 800]);
+    plt.ion(); plt.imshow(occupancy_map, cmap='Greys'); plt.axis([0, 800, 0, 800]);
 
 
 def visualize_timestep(X_bar, tstep):
@@ -85,7 +84,8 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 250
+    num_particles = 100
+    time_period = 10
     # X_bar = init_particles_random(num_particles, occupancy_map)
     X_bar = init_particles_freespace(num_particles, occupancy_map)
     vis_flag = 1
@@ -98,9 +98,10 @@ def main():
         visualize_map(occupancy_map)
 
     first_time_idx = True
+    count = 0
     for time_idx, line in enumerate(logfile):
         # if time_idx % 9 != 0: continue
-
+        
         # Read a single 'line' from the log file (can be either odometry or laser measurement)
         meas_type = line[0] # L : laser scan measurement, O : odometry measurement
         meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ') # convert measurement values from string to double
@@ -111,11 +112,13 @@ def main():
         if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging)
             continue
 
+        count = count + 1
+
         if (meas_type == "L"):
              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
 
-        print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
+        # print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
 
         if (first_time_idx):
             u_t0 = odometry_robot
@@ -140,14 +143,16 @@ def main():
                 z_t = ranges
                 w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
                 # w_t = 1/num_particles
-                X_bar_new[m,:] = np.hstack((x_t1, w_t))
+                # X_bar_new[m,:] = np.hstack((x_t1, w_t))
+                new_wt = X_bar[m,3] * motion_model.give_prior(x_t1,u_t1,x_t0,u_t0)
+                X_bar_new[m,:] = np.hstack((x_t1, new_wt))
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, X_bar[m,3]))
 
-        if vis_type == 'max':
+        if (vis_type == 'max'):
             best_particle_idx = np.argmax(X_bar_new, axis=0)[-1]
             vis_particle = X_bar_new[best_particle_idx][:-1]
-        elif vis_type == 'mean':
+        elif (vis_type == 'mean'):
             # ipdb.set_trace()
             X_weighted = X_bar_new[:,:3] * X_bar_new[:,3:4]
             X_mean = np.sum(X_weighted, axis=0)
@@ -166,8 +171,22 @@ def main():
         """
         RESAMPLING
         """
-        if(np.mean(x_t1 - x_t0) > 0.5):
-            X_bar = resampler.low_variance_sampler(X_bar)
+        #if(np.mean(x_t1 - x_t0) > 0.2):
+        X_bar = resampler.low_variance_sampler(X_bar)
+        add_particles = num_particles/5
+        # time_period = 10
+        
+        if(count%time_period == 0 or sum(X_bar[:,-1])==0):
+            X_bar_re_init = init_particles_freespace(add_particles,occupancy_map) 
+            X_bar[:,-1] = 1.0/(num_particles+add_particles)
+            X_bar_re_init[:,-1] = 1.0/(num_particles+add_particles)
+            X_bar = np.concatenate((X_bar, X_bar_re_init),axis = 0)
+            num_particles = X_bar.shape[0]
+            print num_particles
+        
+        if(count%100 == 0):
+            time_period = time_period * 5
+        
         # X_bar = resampler.multinomial_sampler(X_bar)
         # check if importance too low
         # thres = 1e-29
