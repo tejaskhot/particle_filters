@@ -6,7 +6,7 @@ from scipy.stats import norm
 from numpy import linalg as LA
 import scipy.stats
 from multiprocessing.dummy import Pool
-import ipdb
+import pdb
 
 from MapReader import MapReader
 
@@ -38,21 +38,21 @@ class SensorModel:
         self.map = occupancy_map
 
         self.w_short = 10
-        self.w_max = 0.5
-        self.w_rand = 9.5
+        self.w_max = 1 # 0.5
+        self.w_rand = 9.5 # 9.5
         self.w_hit = 40
 
         self.weight_sum = self.w_short + self.w_max + self.w_rand + self.w_hit
-        # self.w_short /= self.weight_sum
-        # self.w_max /= self.weight_sum
-        # self.w_rand /= self.weight_sum
-        # self.w_hit /= self.weight_sum
+        self.w_short /= self.weight_sum
+        self.w_max /= self.weight_sum
+        self.w_rand /= self.weight_sum
+        self.w_hit /= self.weight_sum
 
-        self.sigma_hit = 80.0
+        self.sigma_hit =  80*3 # 1000 #80 #120 # 150# 80.0
         self.lambda_short = 0.02
 
-        self.z_max = 1000
-        # self.z_max = 8000
+        # self.z_max = 1000
+        self.z_max = 8000
         self.subsample_step_size = 20
 
         self.obstacle_threshold = 0.1
@@ -112,9 +112,9 @@ class SensorModel:
         # ipdb.set_trace()
         q = np.log(self.w_hit * p_hit + self.w_short * p_short + self.w_max * p_max + self.w_rand * p_rand)
         # q = (self.w_hit * p_hit + self.w_short * p_short + self.w_max * p_max + self.w_rand * p_rand)
-        q = np.exp(q.mean())
+        # q = np.exp(q.mean())
         # q = np.prod(q)
-        # q = np.exp(np.sum(q))
+        q = np.exp(np.sum(q))
         #  q = np.exp(np.median(q))
 
         if self.debug_msg:
@@ -127,7 +127,7 @@ class SensorModel:
             x = np.linspace(0, self.z_max, 200)
             y = self.w_hit * self.p_hit(z_true, x) + self.w_rand * self.p_rand(x) + self.w_short * self.p_short(z_true, x) + self.w_max * self.p_max(x)
             plt.plot(x, y, 'k-')
-            # plt.show()
+            plt.show()
             plt.pause(200)
             # plt.pause(0.00001)
 
@@ -137,7 +137,7 @@ class SensorModel:
             plt.ylabel('y')
             plt.draw()
             plt.show()
-            plt.pause(1)
+            plt.pause(20)
             # plt.pause(0.00001)
             plt.close()
 
@@ -172,8 +172,8 @@ class SensorModel:
         plt.ion()
         plt.imshow(self.map, cmap='Greys')
         plt.axis([300, 700, 0, 800])
-        # plt.draw()
-        # plt.pause(200)
+        plt.draw()
+        plt.pause(200)
 
 if __name__=='__main__':
     src_path_map = '../data/map/wean.dat'
@@ -208,4 +208,4 @@ if __name__=='__main__':
         print(q)
         # break
         # if time_idx == 9:
-        #     break
+        break

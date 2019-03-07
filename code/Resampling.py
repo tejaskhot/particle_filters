@@ -2,7 +2,7 @@ import numpy as np
 import pdb
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-import ipdb
+import pdb
 class Resampling:
 
     """

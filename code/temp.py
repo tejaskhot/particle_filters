@@ -1,3 +1,6 @@
+import matplotlib
+# matplotlib.use('Agg')
+
 import numpy as np
 import sys
 import ipdb
@@ -74,7 +77,7 @@ z_t : array of 180 range measurements for each laser scan
 Initialize Parameters
 """
 src_path_map = '../data/map/wean.dat'
-src_path_log = '../data/log/robotdata2.log'
+src_path_log = '../data/log/robotdata1.log'
 
 map_obj = MapReader(src_path_map)
 occupancy_map = map_obj.get_map()
@@ -91,6 +94,7 @@ num_particles = 500
 X_bar = init_particles_freespace(num_particles, occupancy_map)
 vis_flag = 1
 vis_type = 'mean' # {mean, max}
+addition = True
 
 """
 Monte Carlo Localization Algorithm : Main Loop
@@ -103,7 +107,7 @@ if vis_flag:
 fig = plt.figure(figsize=(8,8))
 plt.imshow(occupancy_map) # optional : cmap='viridis'
 plt.axis([0,800,0,800])
-scat = plt.scatter(X_bar[:,0]/10, X_bar[:,1]/10, s=10.0, c='r', marker='o') # optional: marker='o'
+scat = plt.scatter(X_bar[:,0]/10, X_bar[:,1]/10, s=15.0, c='r', marker='o') # optional: marker='o'
 plt.title('Timestep 0') # this will be updated as the log files are read
 
 
@@ -141,6 +145,7 @@ def optimize(time_idx):
     if (meas_type == "L"):
          odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
          ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
+         count = count + 1
 
     print "Processing time step " + str(time_idx+1) + " at time " + str(time_stamp) + "s"
 
@@ -170,31 +175,37 @@ def optimize(time_idx):
         """
         RESAMPLING
         """
-        X_bar = resampler.low_variance_sampler(X_bar)
-        # time_period = 10
+        if addition:
+            if(count%time_period == 0 or sum(X_bar[:,-1])==0):
+                add_particles = num_particles/5
+                X_sorted = X_bar[X_bar[:,-1].argsort()][add_particles:]
+                X_bar_re_init = init_particles_freespace(add_particles,occupancy_map)
+                X_bar = np.concatenate((X_sorted, X_bar_re_init),axis=0)
+                X_bar[:,-1] = 1.0/(len(X_bar))
+                # X_bar_re_init[:,-1] = 1.0/(num_particles+add_particles)
+                # X_bar = np.concatenate((X_bar, X_bar_re_init),axis = 0)
+                num_particles = X_bar.shape[0]
+                print num_particles
+            else:
+                X_bar = resampler.low_variance_sampler(X_bar)
+                X_bar[:,-1] = 1.0/(len(X_bar))
 
-        if(count%time_period == 0 or sum(X_bar[:,-1])==0):
-            add_particles = num_particles/5
-            X_sorted = X_bar[X_bar[:,-1].argsort()][add_particles:]
-            X_bar_re_init = init_particles_freespace(add_particles,occupancy_map)
-            X_bar = np.concatenate((X_sorted, X_bar_re_init),axis=0)
+            if(count%100 == 0):
+                time_period = time_period * 5
+        else:
+            X_bar = resampler.low_variance_sampler(X_bar)
             X_bar[:,-1] = 1.0/(len(X_bar))
-            # X_bar_re_init[:,-1] = 1.0/(num_particles+add_particles)
-            # X_bar = np.concatenate((X_bar, X_bar_re_init),axis = 0)
-            num_particles = X_bar.shape[0]
-            print num_particles
-
-        # if(count%100 == 0):
-        #     time_period = time_period * 5
 
     # update plot in place with the newly updated values
     scat.set_offsets(X_bar[:, 0:2] / 10.0)
     plt.title('Time step %d' % (time_idx + 1))
+    return [scat]
 
 # call the animator.  blit=True means only re-draw the parts that have changed.
 # animation = FuncAnimation(fig=fig, func=optimize, frames=len(logs), interval=30, blit=True)
-animation = FuncAnimation(fig, optimize, len(logs), interval=40)
-animation.save('../data/temp.gif', dpi=40, writer='imagemagick')
+animation = FuncAnimation(fig, optimize, len(logs)-1, interval=100, blit=True)
+# animation.save('../data/robotdata4_500.gif', dpi=80, writer='imagemagick')
+animation.save('../data/robotdata1_500_add_step5.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 
 
 # if __name__=="__main__":
